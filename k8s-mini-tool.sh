@@ -128,7 +128,7 @@ f_menu_choice(){
             "4")
             f_menu_get_pod;;
             "777")
-            f_text_bl "v1.0";;
+            f_text_bl "v1.1";;
             * ) echo "Please enter valid number or hit CTRL+C for exit.";;
         esac
     done
