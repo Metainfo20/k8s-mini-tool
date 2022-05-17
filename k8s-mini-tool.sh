@@ -5,6 +5,7 @@ EDITOR=nano
 CONTAINER=app
 COMMAND="(bash || ash || sh)"
 
+
 f_sep(){
 echo "---------------------------"
 }
@@ -92,10 +93,12 @@ while true; do
    f_text "Input NAMESPACE from list for get pods or input ALL for get all pods in all namespaces:"
    read NAMESPACE
    case $NAMESPACE in
-       "ALL") kubectl get pods --all-namespaces;;
-       "all") kubectl get pods --all-namespaces;;
+       ALL | all | All) kubectl get pods --all-namespaces;;
        "") f_warning_text "Cannot be empty";;
-       *) kubectl get pods --namespace $NAMESPACE; f_text "Input PODNAME from list:";read POD;break;;
+       *) kubectl get pods --namespace $NAMESPACE 2> k8smt;\
+       grep -q -c "No resources found in" k8smt;if [ $? -eq 1 ];\
+       then f_text "Input PODNAME from list:";read POD;rm k8smt;break;else \
+       echo "No resources found in $NAMESPACE";rm k8smt;continue;fi;;
    esac
 done
 f_text "Run command $COMMAND in $NAMESPACE $POD $CONTAINER"
@@ -132,3 +135,4 @@ f_menu_choice(){
 }
 
 f_menu_choice
+
