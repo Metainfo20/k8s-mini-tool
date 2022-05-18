@@ -1,12 +1,12 @@
 #!/bin/bash
 
-ALLOW_FILE_LOAD=1
-USE_COMMAND2=0
+ALLOW_FILE_LOAD=0
+USE_COMMAND2=1
 CERT=ca-auto.pem
 EDITOR=nano
 CONTAINER=app
 COMMAND="(bash || ash || sh)"
-COMMAND2=""
+COMMAND2="/vault/vault-env ./manage.py shell_plus"
 
 f_sep(){
 echo "---------------------------"
