@@ -36,7 +36,7 @@ then
     f_text "Input filename to copy in pod(50kB max):";read FILENAME
     f_write_file_to_pod
 fi
-f_text "Run command $COMMAND2$COMMAND in $NAMESPACE $POD $CONTAINER"
+f_text "Run command $COMMAND2 $COMMAND in $NAMESPACE $POD $CONTAINER"
 if [ "$USE_COMMAND2" = 1 ] && [ "$COMMAND2" != "" ]
 then
     kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND2;$COMMAND"
@@ -64,9 +64,9 @@ f_write_file_to_pod() {
                     * ) echo "Please answer yes or no.";;
                 esac
             done
-        else
-            f_warning_text "No file to send or max limit(50kb) reached"
         fi
+    else
+        f_warning_text "No file to send or max limit(50kb) reached"
     fi
 }
 
@@ -109,6 +109,7 @@ else
     touch $CERT;echo "Delete this, insert certificate text here and save" > $CERT
     $EDITOR $CERT
 fi
+
 f_text "3. create cluster $CLUSTERNAME"
 kubectl config set-cluster $CLUSTERNAME --certificate-authority=$CERT  --server=$ENDPOINT
 f_text "4. set context $USERNAME-$ENDPOINT"
@@ -201,7 +202,7 @@ f_menu_choice(){
     echo "2 - Delete Context"
     echo "3 - Switch Context"
     echo "4 - Get Pod and Run Command"
-    echo "5 - Edit Deploy file"
+    echo "5 - Edit Deploy File"
     f_sep
     echo "Enter your choice:";read choice;f_sep
         case $choice in
@@ -216,7 +217,7 @@ f_menu_choice(){
             "5")
             f_menu_edit_deploy;;
             "777")
-            f_text_bl "v1.3";;
+            f_text_bl "v1.4";;
             * ) echo "Please enter valid number or hit CTRL+C for exit.";;
         esac
     done
