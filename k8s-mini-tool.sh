@@ -187,7 +187,7 @@ while true; do
             [Nn]* )
             echo "$DEP not changed"
             break;;
-            * ) echo "Please answer yes or no.";;
+            * ) echo "Please answer y (yes) or n (no)";;
         esac
     done
 }
