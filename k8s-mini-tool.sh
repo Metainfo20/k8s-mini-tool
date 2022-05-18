@@ -28,6 +28,11 @@ kubectl config get-contexts
 f_sep
 }
 
+f_get_deploy_status(){
+f_text "Current status $DEP $NAMESPACE:"
+kubectl get deploy $DEP --namespace $NAMESPACE
+}
+
 f_menu_setup_access(){
 f_text_bl "Setup new k8s access";f_sep
 f_text "Input token:";read TOKEN
@@ -110,6 +115,39 @@ f_text "Run command $COMMAND in $NAMESPACE $POD $CONTAINER"
 kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND"
 }
 
+f_menu_edit_deploy(){
+f_text_bl "Edit Deploy file";f_sep
+f_get_contexts
+kubectl get ns
+while true; do
+   f_text "Input NAMESPACE from list for get deployments or input ALL for get all deploys in all namespaces:"
+   read NAMESPACE
+   case $NAMESPACE in
+       ALL | all | All) kubectl get deploy --all-namespaces;;
+       "") f_warning_text "Cannot be empty";;
+       *) kubectl get deploy --namespace $NAMESPACE 2> k8smt2;\
+       grep -q -c "No resources found in" k8smt2;if [ $? -eq 1 ];\
+       then f_text "Input deploy from list:";read DEP;rm k8smt2;break;else \
+       echo "No resources found in $NAMESPACE";rm k8smt2;continue;fi;;
+   esac
+done
+f_get_deploy_status
+while true; do
+        read -p "Do you want to edit $DEP? (y/n)" yn
+        case $yn in
+            [Yy]* )
+            f_text "$EDITOR kubectl edit deployment/$DEP --namespace $NAMESPACE"
+            KUBE_EDITOR=$EDITOR kubectl edit deployment/$DEP --namespace $NAMESPACE
+            f_get_deploy_status
+            break;;
+            [Nn]* )
+            echo "$DEP not changed"
+            exit;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+}
+
 f_menu_choice(){
     while true; do
     f_text_bl "     _                               
@@ -117,10 +155,11 @@ f_menu_choice(){
 /\ /_/ _\   / / // / //   /  /_//_// 
                                      "
     f_sep
-    echo "1 - Setup new k8s access"
-    echo "2 - Delete context"
-    echo "3 - Switch context"
-    echo "4 - Get pod and run command"
+    echo "1 - Setup New k8s Access"
+    echo "2 - Delete Context"
+    echo "3 - Switch Context"
+    echo "4 - Get Pod and Run Command"
+    echo "5 - Edit Deploy file"
     f_sep
     echo "Enter your choice:";read choice;f_sep
         case $choice in
@@ -132,8 +171,10 @@ f_menu_choice(){
             f_menu_switch_context;;
             "4")
             f_menu_get_pod;;
+            "5")
+            f_menu_edit_deploy;;
             "777")
-            f_text_bl "v1.1";;
+            f_text_bl "v1.2";;
             * ) echo "Please enter valid number or hit CTRL+C for exit.";;
         esac
     done
