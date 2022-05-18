@@ -1,10 +1,12 @@
 #!/bin/bash
 
+ALLOW_FILE_LOAD=1
+USE_COMMAND2=0
 CERT=ca-auto.pem
 EDITOR=nano
 CONTAINER=app
 COMMAND="(bash || ash || sh)"
-
+COMMAND2=""
 
 f_sep(){
 echo "---------------------------"
@@ -26,6 +28,46 @@ f_get_contexts(){
 f_text "Get all contexts:"
 kubectl config get-contexts
 f_sep
+}
+
+f_run_command(){
+if [ $ALLOW_FILE_LOAD = 1 ]
+then
+    f_text "Input filename to copy in pod(50kB max):";read FILENAME
+    f_write_file_to_pod
+fi
+f_text "Run command $COMMAND2$COMMAND in $NAMESPACE $POD $CONTAINER"
+if [ $USE_COMMAND2 = 1 && -v $COMMAND2 ]
+then
+    kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND2;$COMMAND"
+else
+    kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND"
+fi
+}
+
+f_write_file_to_pod() {
+    if [ $FILENAME ] && [ -e $FILENAME ]
+    then
+        FILESIZE=$(wc -c $FILENAME | awk '{print $1}')
+        if [ $FILESIZE -lt 51200 ]
+        then
+            f_text "kubectl cp $FILENAME $NAMESPACE/$POD:/$CONTAINER/$FILENAME -c $CONTAINER"
+            while true; do
+                read -p "Do you want to send $FILENAME? (y/n)" yn
+                case $yn in
+                    [Yy]* )
+                    kubectl cp $FILENAME $NAMESPACE/$POD:/$CONTAINER/$FILENAME -c $CONTAINER
+                    break;;
+                    [Nn]* )
+                    echo "$FILENAME file was not sent"
+                    break;;
+                    * ) echo "Please answer yes or no.";;
+                esac
+            done
+        else
+            f_warning_text "No file to send or max limit(50kb) reached"
+        fi
+    fi
 }
 
 f_get_deploy_status(){
@@ -111,8 +153,8 @@ while true; do
        echo "No resources found in $NAMESPACE";rm k8smt;continue;fi;;
    esac
 done
-f_text "Run command $COMMAND in $NAMESPACE $POD $CONTAINER"
-kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND"
+
+f_run_command
 }
 
 f_menu_edit_deploy(){
@@ -142,7 +184,7 @@ while true; do
             break;;
             [Nn]* )
             echo "$DEP not changed"
-            exit;;
+            break;;
             * ) echo "Please answer yes or no.";;
         esac
     done
@@ -174,7 +216,7 @@ f_menu_choice(){
             "5")
             f_menu_edit_deploy;;
             "777")
-            f_text_bl "v1.2";;
+            f_text_bl "v1.3";;
             * ) echo "Please enter valid number or hit CTRL+C for exit.";;
         esac
     done
