@@ -37,7 +37,7 @@ then
     f_write_file_to_pod
 fi
 f_text "Run command $COMMAND2$COMMAND in $NAMESPACE $POD $CONTAINER"
-if [ $USE_COMMAND2 = 1 && -v $COMMAND2 ]
+if [ $USE_COMMAND2 = 1 ] && [ -v $COMMAND2 ]
 then
     kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND2;$COMMAND"
 else
