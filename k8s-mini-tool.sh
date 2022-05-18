@@ -5,6 +5,7 @@ USE_COMMAND2=0
 CERT=ca-auto.pem
 EDITOR=nano
 CONTAINER=app
+FILEPATH=app
 COMMAND="(bash || ash || sh)"
 COMMAND2=""
 
@@ -51,12 +52,12 @@ f_write_file_to_pod() {
         FILESIZE=$(wc -c $FILENAME | awk '{print $1}')
         if [ $FILESIZE -lt 51200 ]
         then
-            f_text "kubectl cp $FILENAME $NAMESPACE/$POD:/$CONTAINER/$FILENAME -c $CONTAINER"
+            f_text "kubectl cp $FILENAME $NAMESPACE/$POD:/$FILEPATH/$FILENAME -c $CONTAINER"
             while true; do
                 read -p "Do you want to send $FILENAME? (y/n)" yn
                 case $yn in
                     [Yy]* )
-                    kubectl cp $FILENAME $NAMESPACE/$POD:/$CONTAINER/$FILENAME -c $CONTAINER
+                    kubectl cp $FILENAME $NAMESPACE/$POD:/$FILEPATH/$FILENAME -c $CONTAINER
                     break;;
                     [Nn]* )
                     echo "$FILENAME file was not sent"
