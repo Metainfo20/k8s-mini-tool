@@ -40,15 +40,20 @@ f_text "2. create and update $CERT file"
 if [ -e $CERT ]
 then
     while true; do
-    f_warning_text "File $CERT Already exist! Overwrite? (y/n)"; read yn
+    f_warning_text "File $CERT Already exist! Create new one? (y/n)"; read yn
         case $yn in
             [Yy]* )
-            truncate -s 0 $CERT;
-            echo "Delete this, insert certificate text here and save" > $CERT;
-            $EDITOR $CERT;
-            break;;
+            f_text "Input new filename(for example, ca-auto1.pem):";read CERT;
+            if [ -e $CERT ]
+            then
+                continue
+            else
+                echo "Delete this, insert certificate text here and save" > $CERT;
+                $EDITOR $CERT;
+                break;
+            fi;;
             [Nn]* )
-            f_warning_text "New certificate not set, use existing certificate"
+            f_warning_text "New certificate not set, use existing certificate $CERT"
             break;;
             * ) echo "Please answer y (yes) or n (no).";;
         esac
