@@ -1,12 +1,12 @@
 #!/bin/bash
 
-ALLOW_FILE_LOAD=1
-USE_COMMAND2=0
+ALLOW_FILE_LOAD=0
+USE_COMMAND2=1
 CERT=ca-auto.pem
 EDITOR=nano
 CONTAINER=app
 COMMAND="(bash || ash || sh)"
-COMMAND2=""
+COMMAND2="/vault/vault-env ./manage.py shell_plus"
 
 f_sep(){
 echo "---------------------------"
@@ -37,7 +37,7 @@ then
     f_write_file_to_pod
 fi
 f_text "Run command $COMMAND2$COMMAND in $NAMESPACE $POD $CONTAINER"
-if [ $USE_COMMAND2 = 1 ] && [ -v $COMMAND2 ]
+if [ "$USE_COMMAND2" = 1 ] && [ "$COMMAND2" != "" ]
 then
     kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND2;$COMMAND"
 else
