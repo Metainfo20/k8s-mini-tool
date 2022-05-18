@@ -62,7 +62,7 @@ f_write_file_to_pod() {
                     [Nn]* )
                     echo "$FILENAME file was not sent"
                     break;;
-                    * ) echo "Please answer yes or no.";;
+                    * ) echo "Please answer y (yes) or n (no)";;
                 esac
             done
         fi
