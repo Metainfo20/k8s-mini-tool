@@ -14,15 +14,23 @@ echo "---------------------------"
 }
 
 f_text(){
-echo -e "\033[32m$1\033[0m"
+case $2 in
+    "bl")echo -e "\033[1;36m$1\033[0m";;
+    "red")echo -e "\033[31mWARNING: $1\033[0m";sleep 1s;;
+    *)echo -e "\033[32m$1\033[0m";;
+esac
 }
 
-f_text_bl(){
-echo -e "\033[1;36m$1\033[0m"
-}
-
-f_warning_text(){
-echo -e "\033[31mWARNING:$1\033[0m"
+f_configfile(){
+case $1 in
+    "clear")
+    echo -n > $CONFIGFILE;;
+    "save")
+    echo -n > $CONFIGFILE
+    echo "export NAMESPACE=$NAMESPACE" >> $CONFIGFILE
+    echo "export POD=$POD" >> $CONFIGFILE
+    echo "export CONTAINER=$CONTAINER" >> $CONFIGFILE;;
+esac
 }
 
 f_get_contexts(){
@@ -31,16 +39,21 @@ kubectl config get-contexts
 f_sep
 }
 
+f_check_namespace(){
+if [[ $NAMESPACE =~ "prod" ]]
+then
+    f_text "Seems like its production... :O" "red"
+fi
+}
+
 f_run_command(){
 f_text "Run command $COMMAND2 $COMMAND in $NAMESPACE $POD $CONTAINER"
 if [ "$USE_COMMAND2" = 1 ] && [ "$COMMAND2" != "" ]
 then
-    echo -n > $CONFIGFILE
-    echo "export NAMESPACE=$NAMESPACE" >> $CONFIGFILE
-    echo "export POD=$POD" >> $CONFIGFILE
-    echo "export CONTAINER=$CONTAINER" >> $CONFIGFILE
+    f_configfile "save"
     kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND2;$COMMAND"
 else
+    f_configfile "save"
     kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "$COMMAND"
 fi
 }
@@ -51,7 +64,7 @@ kubectl get deploy $DEP --namespace $NAMESPACE
 }
 
 f_menu_setup_access(){
-f_text_bl "Setup new k8s access";f_sep
+f_text "Setup new k8s access" "bl";f_sep
 f_text "Input token:";read TOKEN
 f_text "Input username(for example user-test):";read USERNAME
 f_text "Input endpoint(for example, https://192.168.1.2/):";read ENDPOINT
@@ -62,7 +75,7 @@ f_text "2. create and update $CERT file"
 if [ -e $CERT ]
 then
     while true; do
-    f_warning_text "File $CERT Already exist! Create new one? (y/n)"; read yn
+        f_text "File $CERT Already exist! Create new one? (y/n)" "red"; read yn
         case $yn in
             [Yy]* )
             f_text "Input new filename(for example, ca-auto1.pem):";read CERT;
@@ -75,10 +88,10 @@ then
                 break;
             fi;;
             [Nn]* )
-            f_warning_text "New certificate not set, use existing certificate $CERT"
+            f_text "New certificate not set, use existing certificate $CERT" "red"
             break;;
             * ) echo "Please answer y (yes) or n (no).";;
-        esac
+       esac
     done
 else
     touch $CERT;echo "Delete this, insert certificate text here and save" > $CERT
@@ -98,33 +111,34 @@ kubectl get ns
 }
 
 f_menu_switch_context(){
-f_text_bl "Switch k8s Context";f_sep
+f_text "Switch k8s Context" "bl";f_sep
 f_get_contexts
 f_text "Input NAME context to switch to:";read CONTEXTNAME
 kubectl config use-context $CONTEXTNAME
 f_get_contexts
-echo -n > $CONFIGFILE
+f_configfile "clear"
 }
 
 f_menu_delete_context(){
-f_text_bl "Delete k8s Context";f_sep
+f_text "Delete k8s Context" "bl";f_sep
 f_get_contexts
 f_text "Input NAME context to be deleted:";read CONTEXTNAME
 kubectl config unset contexts.$CONTEXTNAME
 f_get_contexts
-echo -n > $CONFIGFILE
+f_configfile "clear"
 }
 
 f_menu_get_pod(){
-f_text_bl "Get New Pod and Run Command";f_sep
+f_text "Get New Pod and Run Command" "bl";f_sep
 f_get_contexts
 kubectl get ns
 while true; do
    f_text "Input NAMESPACE from list for get pods or input ALL for get all pods in all namespaces:"
    read NAMESPACE
+   f_check_namespace
    case $NAMESPACE in
        ALL | all | All) kubectl get pods --all-namespaces;;
-       "") f_warning_text "Cannot be empty";;
+       "") f_text "Cannot be empty" "red";;
        *) kubectl get pods --namespace $NAMESPACE 2> k8smt;\
        grep -q -c "No resources found in" k8smt;if [ $? -eq 1 ];\
        then f_text "Input PODNAME from list:";read POD;rm k8smt;break;else \
@@ -136,10 +150,10 @@ f_run_command
 }
 
 f_menu_get_selected_pod(){
-f_text_bl "Get Selected Pod and Run Command";f_sep
+f_text "Get Selected Pod and Run Command" "bl";f_sep
 if [ $(stat -c "%s" $CONFIGFILE) -eq 0 ]
 then
-    f_warning_text "No Pod Selected. Select one firstly"
+    f_text "No Pod Selected. Select one firstly." "red"
 else
 f_run_command
 fi
@@ -147,7 +161,7 @@ fi
 
 f_menu_get_files_from_pod() {
 while true; do
-    f_text_bl "Get Files from Pod";f_sep
+    f_text "Get Files from Pod" "bl";f_sep
     f_text "Input full path to file IN POD:";read FILEFROMPOD
     f_text "Input full path to LOCAL file, which will be save FROM POD:";read FILELOCAL
     f_text "EXEC:kubectl cp $NAMESPACE/$POD:$FILEFROMPOD $FILELOCAL -c $CONTAINER"
@@ -155,11 +169,12 @@ while true; do
     case $yn in
         [Yy]* )
         kubectl cp $NAMESPACE/$POD:$FILEFROMPOD $FILELOCAL -c $CONTAINER
-        if [ $FILELOCAL ]
+        if [ -e $FILELOCAL ]
         then
             f_text "Check File: File recived succesfully"
+            ls -l $FILELOCAL
         else
-            f_warning_text "File doesnt recieve"
+            f_text "File doesnt recieve" "red"
         fi
         ;;
         [Nn]* )
@@ -170,11 +185,12 @@ while true; do
         f_text "Input CONTAINER:";read CONTAINER
         f_text "EXEC:kubectl cp $NAMESPACE/$POD:$FILEFROMPOD $FILELOCAL -c $CONTAINER"
         kubectl cp $NAMESPACE/$POD:$FILEFROMPOD $FILELOCAL -c $CONTAINER
-        if [ $FILELOCAL ]
+        if [ -e $FILELOCAL ]
         then
             f_text "Check File: File recived succesfully"
+            ls -l $FILELOCAL
         else
-            f_warning_text "File doesnt recieve"
+            f_text "File doesnt recieve" "red"
         fi
         ;;
         * ) echo "Please answer y (yes) or n (no).";;
@@ -183,7 +199,7 @@ done
 }
 
 f_menu_send_files_to_pod() {
-f_text_bl "Sending Files to Pod";f_sep
+f_text "Sending Files to Pod" "bl";f_sep
 if [ $ALLOW_FILE_LOAD = 1 ]
 then
     while true; do
@@ -215,31 +231,32 @@ then
                         f_text "Check file:";kubectl exec -i -t -n $NAMESPACE $POD -c $CONTAINER "--" sh -c "ls -l $FILETOPOD;exit"
                         ;;
                         [Nn]* )
-                        f_warning_text "Aborted"
+                        f_text "Aborted" "red"
                         ;;
                         * ) echo "Please answer y (yes) or n (no).";;
                     esac
                 esac
             fi
         else
-        f_warning_text "No file to send or max limit(50kb) reached"
+        f_text "No file to send or max limit(50kb) reached." "red"
         fi
     done
 else
-    f_warning_text "Sending files is disabled"
+    f_text "Sending files is disabled." "red"
 fi
 }
 
 f_menu_edit_deploy(){
-f_text_bl "Edit Deploy File";f_sep
+f_text "Edit Deploy File" "bl";f_sep
 f_get_contexts
 kubectl get ns
 while true; do
    f_text "Input NAMESPACE from list for get deployments or input ALL for get all deploys in all namespaces:"
    read NAMESPACE
+   f_check_namespace
    case $NAMESPACE in
        ALL | all | All) kubectl get deploy --all-namespaces;;
-       "") f_warning_text "Cannot be empty";;
+       "") f_text "Cannot be empty" "red";;
        *) kubectl get deploy --namespace $NAMESPACE 2> k8smt2;\
        grep -q -c "No resources found in" k8smt2;if [ $? -eq 1 ];\
        then f_text "Input deploy from list:";read DEP;rm k8smt2;break;else \
@@ -256,7 +273,7 @@ while true; do
             f_get_deploy_status
             break;;
             [Nn]* )
-            echo "$DEP not changed"
+            f_text "$DEP not changed" "red"
             break;;
             * ) echo "Please answer y (yes) or n (no)";;
         esac
@@ -264,19 +281,19 @@ while true; do
 }
 
 f_menu_choice(){
-    while true; do
-    f_text_bl "     _                               
+while true; do
+    f_text "     _                               
  /_ /_/  _   _ _  . _  .  _/_ _  _  /
 /\ /_/ _\   / / // / //   /  /_//_// 
-                                     "
+                                     " "bl"
     f_sep
-    f_text_bl "Selected Context:"
+    f_text "Selected Context:" "bl"
     kubectl config current-context
     if [ $(stat -c "%s" $CONFIGFILE) -eq 0 ]
     then
-        f_text_bl "No current Objects Selected"
+        f_text "No current Objects Selected" "bl"
     else
-        f_text_bl "Selected Objects:"
+        f_text "Selected Objects:" "bl"
         source $CONFIGFILE
         echo "NAMESPACE=$NAMESPACE"
         echo "POD=$POD"
@@ -293,30 +310,20 @@ f_menu_choice(){
     echo "8 - Send Files to Pod"
     f_sep
     echo "Enter your choice:";read choice;f_sep
-        case $choice in
-            "1")
-            f_menu_setup_access;;
-            "2")
-            f_menu_delete_context;;
-            "3")
-            f_menu_switch_context;;
-            "4")
-            f_menu_get_pod;;
-            "5")
-            f_menu_get_selected_pod;;
-            "6")
-            f_menu_edit_deploy;;
-            "7")
-            f_menu_get_files_from_pod;;
-            "8")
-            f_menu_send_files_to_pod;;
-            "exit")
-            exit;;
-            "777")
-            f_text_bl "v1.5";;
-            * ) echo "Please enter valid number or input "exit" for exit.";;
-        esac
-    done
+    case $choice in
+        "1") f_menu_setup_access;;
+        "2") f_menu_delete_context;;
+        "3") f_menu_switch_context;;
+        "4") f_menu_get_pod;;
+        "5") f_menu_get_selected_pod;;
+        "6") f_menu_edit_deploy;;
+        "7") f_menu_get_files_from_pod;;
+        "8") f_menu_send_files_to_pod;;
+        "exit") f_text "Bye!" "bl";exit;;
+        "777") f_text "v1.6" "bl";sleep 3s;;
+        * ) echo "Please enter valid number or input "exit" for exit.";sleep 1s;;
+    esac
+done
 }
 
 f_menu_choice
