@@ -5,10 +5,14 @@ You can setup new access to k8s with using .pem file and token(1), delete contex
 
 Usage:\
 sudo chmod+x k8s-mini-tool.sh\
-./k8s-mini-tool.sh
+./k8s-mini-tool.sh\
 
 default settings:\
-CERT=ca-auto.pem\
-EDITOR=nano\
-CONTAINER=app\
-COMMAND="(bash || ash || sh)"
+ALLOW_FILE_LOAD=0 - Change to 1 for enable upload local file to pod(50KB max limit)\
+USE_COMMAND2=0 - Change to 1 for enable secondary command\
+CERT=ca-auto.pem - filename for cert file\
+EDITOR=nano - default editor\
+CONTAINER=app - pod container\
+FILEPATH=app - filepath for upload file in pod\
+COMMAND="(bash || ash || sh)" - primary command\
+COMMAND2="" - secondary command\
