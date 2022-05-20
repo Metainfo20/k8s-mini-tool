@@ -284,7 +284,7 @@ f_menu_choice(){
 while true; do
     f_text "     _
  /_ /_/  _   _ _  . _  .  _/_ _  _  /
-/\ /_/ _\   / / // / //   /  /_//_// 
+/\ /_/ _\   / / // / //   /  /_//_//
                                      " "bl"
     f_sep
     f_text "Selected Context:" "bl"
