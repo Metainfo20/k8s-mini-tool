@@ -282,7 +282,7 @@ while true; do
 
 f_menu_choice(){
 while true; do
-    f_text "     _                               
+    f_text "     _
  /_ /_/  _   _ _  . _  .  _/_ _  _  /
 /\ /_/ _\   / / // / //   /  /_//_// 
                                      " "bl"
